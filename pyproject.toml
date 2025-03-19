@@ -1,0 +1,14 @@
+[project]
+name = "reco"
+version = "0.1.0"
+description = "Vertex reconstruction for the ALPHA-g experiment"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = []
+
+[project.scripts]
+reco = "reco:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
