@@ -41,21 +41,12 @@ def set_random_seeds(seed):
 
 
 def run_model(model, device, points, target, model_type):
-    if model_type in [
-        "shift and scale globally",
-        "shift only",
-        "scale and shift2",
-        "shift only z",
-    ]:
-        points, mean_z = provider.normalize_spacepoints(
-            points, False, event_type=model_type
-        )
-        normal_target = provider.normalize_spacepoints_target(
-            target, event_type=model_type, mean_z=mean_z
-        )
-    else:
-        points = provider.normalize_spacepoints(points, False)
-        normal_target = provider.normalize_spacepoints_target(target)
+    points, mean_z = provider.normalize_spacepoints(
+        points, False, event_type=model_type
+    )
+    normal_target = provider.normalize_spacepoints_target(
+        target, event_type=model_type, mean_z=mean_z
+    )
 
     points = torch.Tensor(points).transpose(2, 1)
     normal_target = torch.Tensor(normal_target)
@@ -63,17 +54,9 @@ def run_model(model, device, points, target, model_type):
 
     pred_i, _ = model(points)
 
-    if model_type in [
-        "shift and scale globally",
-        "shift only",
-        "scale and shift2",
-        "shift only z",
-    ]:
-        unnormal_pred_i = provider.unnormalize_spacepoints_target(
-            pred_i.cpu(), event_type=model_type, mean_z=mean_z
-        )
-    else:
-        unnormal_pred_i = provider.unnormalize_spacepoints_target(pred_i.cpu())
+    unnormal_pred_i = provider.unnormalize_spacepoints_target(
+        pred_i.cpu(), event_type=model_type, mean_z=mean_z
+    )
 
     return unnormal_pred_i, target
 
