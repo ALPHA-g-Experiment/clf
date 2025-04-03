@@ -14,6 +14,7 @@ def target_z(dataset, output, bins):
 
     if output:
         plt.savefig(output)
+        print(f"Created `{output}`")
     else:
         plt.show()
 
@@ -29,6 +30,7 @@ def cloud_size(dataset, output, bins):
 
     if output:
         plt.savefig(output)
+        print(f"Created `{output}`")
     else:
         plt.show()
 
