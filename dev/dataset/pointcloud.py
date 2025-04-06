@@ -15,10 +15,8 @@ class PointCloudDataset(Dataset):
                     )
                 )
                 .list.gather(
-                    pl.int_range(cloud_size),
-                    null_on_oob=True,
+                    pl.int_ranges(cloud_size) % pl.col("point_cloud").list.len()
                 )
-                .list.eval(pl.element().fill_null(strategy="forward"))
                 .list.to_array(cloud_size),
             )
             .collect()
