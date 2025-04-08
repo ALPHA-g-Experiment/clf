@@ -20,12 +20,11 @@ class PointCloudDataset(Dataset):
                 .list.to_array(cloud_size),
             )
             .collect()
+            .to_torch("dataset", label="target")
         )
 
     def __len__(self):
         return len(self.inner)
 
     def __getitem__(self, idx):
-        # If `cloud_size * 3 * dataset_rows > 2^32`, calling `to_torch` on the
-        # complete dataset panics.
-        return self.inner[idx].to_torch("dataset", label="target")[0]
+        return self.inner[idx]
