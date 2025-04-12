@@ -75,4 +75,4 @@ class Regressor(nn.Module):
         x = x.max(dim=2).values
         x = self.layers_3(x)
 
-        return x, feat_trans
+        return x
