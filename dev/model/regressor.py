@@ -73,6 +73,6 @@ class Regressor(nn.Module):
 
         x = self.layers_2(x)
         x = x.max(dim=2).values
-        x = self.layers_3(x)
+        x = self.layers_3(x).view(-1)
 
         return x
