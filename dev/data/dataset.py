@@ -17,7 +17,9 @@ class PointCloudDataset(Dataset):
                 .list.gather(
                     pl.int_ranges(cloud_size) % pl.col("point_cloud").list.len()
                 )
-                .list.to_array(cloud_size),
+                .list.to_array(cloud_size)
+                # PyTorch pipeline expects (B, C, L) shape
+                .map_batches(lambda x: x.to_numpy().transpose(0, 2, 1)),
             )
             .collect()
             .to_torch("dataset", label="target")
