@@ -3,7 +3,25 @@ from torch.utils.data import Dataset
 
 
 class PointCloudDataset(Dataset):
-    def __init__(self, parquet_file, cloud_size):
+    """
+    A PyTorch dataset for point cloud data stored in a Parquet file.
+
+    Args:
+        parquet_file (str): Path to the Parquet file containing samples.
+            Each row must include:
+                - `target`: Annihilation vertex position (array[f32, 3])
+                - `point_cloud`: list of 3D points (list[array[f32, 3]])
+        config (dict): Dataset configuration with keys:
+            - `cloud_size` (int): Number of points to sample from the point cloud.
+
+    Returns:
+        A dataset compatible with PyTorch where each item is a tuple:
+            (Tensor of shape (3, cloud_size), scalar Tensor)
+    """
+
+    def __init__(self, parquet_file, config):
+        cloud_size = config["cloud_size"]
+
         self.inner = (
             pl.scan_parquet(parquet_file)
             .with_columns(
