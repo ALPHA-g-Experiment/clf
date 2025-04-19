@@ -29,6 +29,13 @@ def cloud_size(dataset, bins, min, max, normalize, alpha):
     )
 
 
+def training(training_log):
+    df = pl.read_csv(training_log)
+
+    plt.plot(df["epoch"], df["training_loss"], label=f"Training ({training_log})")
+    plt.plot(df["epoch"], df["validation_loss"], label=f"Validation ({training_log})")
+
+
 parser = argparse.ArgumentParser(description="Data Visualization")
 subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -58,6 +65,12 @@ parser_cloud_size = subparsers.add_parser(
     parents=[parser_all, parser_hist],
 )
 
+parser_training = subparsers.add_parser(
+    "training",
+    help="training and validation loss (expects CSV training log)",
+    parents=[parser_all],
+)
+
 args = parser.parse_args()
 
 alpha = 1.0 if len(args.data) == 1 else 0.5
@@ -66,12 +79,17 @@ for dataset in args.data:
         case "target-z":
             target_z(dataset, args.bins, args.min, args.max, args.normalize, alpha)
             plt.xlabel("z [mm]")
-            plt.ylabel("count")
+            plt.ylabel("Count")
 
         case "cloud-size":
             cloud_size(dataset, args.bins, args.min, args.max, args.normalize, alpha)
             plt.xlabel("Number of points")
-            plt.ylabel("count")
+            plt.ylabel("Count")
+
+        case "training":
+            training(dataset)
+            plt.xlabel("Epoch")
+            plt.ylabel("Loss [a.u]")
 
 plt.legend()
 
