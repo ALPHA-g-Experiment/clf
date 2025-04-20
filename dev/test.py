@@ -39,5 +39,6 @@ with torch.no_grad():
 df = pl.DataFrame({"target": targets, "prediction": predictions})
 if args.output:
     df.write_csv(args.output)
+    print(f"Created `{args.output}`")
 else:
     print(df.write_csv())
