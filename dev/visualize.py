@@ -36,6 +36,16 @@ def training(training_log):
     plt.plot(df["epoch"], df["validation_loss"], label=f"Validation ({training_log})")
 
 
+def residuals(data, bins, min, max, normalize, alpha):
+    res = pl.read_csv(data).select(res=pl.col("prediction") - pl.col("target"))["res"]
+    min = res.min() if min is None else min
+    max = res.max() if max is None else max
+
+    plt.hist(
+        res, bins=bins, range=(min, max), density=normalize, alpha=alpha, label=data
+    )
+
+
 parser = argparse.ArgumentParser(description="Data Visualization")
 subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -71,6 +81,12 @@ parser_training = subparsers.add_parser(
     parents=[parser_all],
 )
 
+parser_residuals = subparsers.add_parser(
+    "residuals",
+    help="residual distribution (expects CSV test results)",
+    parents=[parser_all, parser_hist],
+)
+
 args = parser.parse_args()
 
 alpha = 1.0 if len(args.data) == 1 else 0.5
@@ -90,6 +106,11 @@ for dataset in args.data:
             training(dataset)
             plt.xlabel("Epoch")
             plt.ylabel("Loss [a.u]")
+
+        case "residuals":
+            residuals(dataset, args.bins, args.min, args.max, args.normalize, alpha)
+            plt.xlabel("Residual [mm]")
+            plt.ylabel("Count")
 
 plt.legend()
 
