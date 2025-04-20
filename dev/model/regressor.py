@@ -62,6 +62,7 @@ class Regressor(nn.Module):
 
     Args:
         config (dict): Inner layer configuration with keys:
+            - `input_transform_net`: nested config for input alignment T-Net.
             - `conv_feature_extractor_pre`: list of Conv1d layer dimensions for
               pre-alignment feature extraction.
             - `feature_transform_net`: nested config for feature alignment T-Net.
@@ -82,6 +83,8 @@ class Regressor(nn.Module):
     def __init__(self, config):
         super().__init__()
         in_dim = 3
+
+        self.input_transform_net = _TNet(in_dim, config["input_transform_net"], 1)
 
         self.conv_feature_extractor_pre = nn.Sequential()
         for dim in config["conv_feature_extractor_pre"]:
@@ -114,6 +117,9 @@ class Regressor(nn.Module):
         self.fc_regressor.append(nn.Linear(in_dim, 1))
 
     def forward(self, x):
+        input_trans = self.input_transform_net(x)
+        x = torch.stack((x[:, 0, :], x[:, 1, :], x[:, 2, :] - input_trans), dim=1)
+
         x = self.conv_feature_extractor_pre(x)
 
         feat_trans = self.feature_transform_net(x).view(
@@ -123,6 +129,8 @@ class Regressor(nn.Module):
 
         x = self.conv_feature_extractor_post(x)
         x = x.max(dim=2).values
-        x = self.fc_regressor(x).view(-1)
+        x = self.fc_regressor(x)
 
-        return x
+        x = x + input_trans
+
+        return x.view(-1)
