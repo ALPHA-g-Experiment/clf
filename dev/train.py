@@ -2,14 +2,15 @@
 
 import argparse
 import csv
-import shutil
-import tomllib
 import torch
 
 from data.dataset import PointCloudDataset
 from datetime import datetime
+from dynaconf import loaders
+from dynaconf.utils.boxing import DynaBox
 from model.regressor import Regressor
 from pathlib import Path
+from config.settings import settings
 from training.optimizer import build_optimizer
 from training.loop import train_one_epoch, test_one_epoch
 from training.loss import CustomLoss
@@ -19,13 +20,13 @@ from torch.utils.data import DataLoader
 parser = argparse.ArgumentParser(description="Training pipeline")
 parser.add_argument("train_data", help="path to Parquet training data")
 parser.add_argument("val_data", help="path to Parquet validation data")
-parser.add_argument("config", help="path to TOML config file")
 parser.add_argument(
     "--output-dir", type=Path, help="output directory (default: YYYY_MM_DDTHH-MM-SS)"
 )
 parser.add_argument(
     "--force", action="store_true", help="overwrite OUTPUT_DIR if it already exists"
 )
+parser.add_argument("--dry-run", action="store_true", help="only output settings file")
 
 args = parser.parse_args()
 if args.output_dir is None:
@@ -37,16 +38,18 @@ if args.output_dir.exists() and not args.force:
     )
 args.output_dir.mkdir(parents=True, exist_ok=True)
 
-config = tomllib.load(open(args.config, "rb"))
-shutil.copyfile(args.config, args.output_dir / "config.toml")
+loaders.write(str(args.output_dir / "config.toml"), DynaBox(settings.to_dict()))
 
-batch_size = config["training"]["batch_size"]
-num_epochs = config["training"]["num_epochs"]
-train_dataset = PointCloudDataset(args.train_data, config["data"])
-validation_dataset = PointCloudDataset(args.val_data, config["data"])
-model = Regressor(config["model"])
-loss_fn = CustomLoss(config["training"]["loss"])
-optimizer = build_optimizer(model.parameters(), config["training"]["optimizer"])
+if args.dry_run:
+    exit(0)
+
+batch_size = settings.training.batch_size
+max_epochs = settings.training.max_epochs
+train_dataset = PointCloudDataset(args.train_data, settings.data)
+validation_dataset = PointCloudDataset(args.val_data, settings.data)
+model = Regressor(settings.model)
+loss_fn = CustomLoss(settings.training.loss)
+optimizer = build_optimizer(model.parameters(), settings.training.optimizer)
 
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,7 +64,7 @@ with open(training_log, mode="w", newline="") as f:
     writer.writerow(["epoch", "training_loss", "validation_loss"])
 
 best_loss = float("inf")
-for i in range(num_epochs):
+for i in range(max_epochs):
     train_loss = train_one_epoch(train_dataloader, model, loss_fn, optimizer, device)
     validation_loss = test_one_epoch(validation_dataloader, model, loss_fn, device)
 
