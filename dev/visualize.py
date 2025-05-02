@@ -46,6 +46,36 @@ def residuals(data, bins, min, max, normalize, alpha):
     )
 
 
+def bias(data, num_slices, trim):
+    df = pl.read_csv(data).select("target", res=pl.col("prediction") - pl.col("target"))
+    breaks = pl.linear_space(
+        df["target"].min(),
+        df["target"].max(),
+        num_samples=num_slices - 1,
+        closed="none",
+        eager=True,
+    )
+    df = (
+        df.with_columns(bin=pl.col("target").cut(breaks))
+        .group_by("bin")
+        .agg(
+            pl.mean("target"),
+            pl.col("res").filter(
+                pl.col("res").is_between(
+                    pl.col("res").quantile(trim), pl.col("res").quantile(1 - trim)
+                )
+            ),
+        )
+        .select(
+            z="target",
+            mean=pl.col("res").list.mean(),
+            std=pl.col("res").list.std().truediv(pl.col("res").list.len().sqrt()),
+        )
+    )
+
+    plt.errorbar(df["z"], df["mean"], yerr=df["std"], label=data)
+
+
 parser = argparse.ArgumentParser(description="Data Visualization")
 subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -87,6 +117,16 @@ parser_residuals = subparsers.add_parser(
     parents=[parser_all, parser_hist],
 )
 
+parser_bias = subparsers.add_parser(
+    "bias",
+    help="reconstruction bias (expects CSV test results)",
+    parents=[parser_all],
+)
+parser_bias.add_argument("--slices", type=int, default=24, help="number of slices")
+parser_bias.add_argument(
+    "--trim", type=float, default=0.05, help="fraction to trim from each side"
+)
+
 args = parser.parse_args()
 
 alpha = 1.0 if len(args.data) == 1 else 0.5
@@ -111,6 +151,11 @@ for dataset in args.data:
             residuals(dataset, args.bins, args.min, args.max, args.normalize, alpha)
             plt.xlabel("Residual [mm]")
             plt.ylabel("Count")
+
+        case "bias":
+            bias(dataset, args.slices, args.trim)
+            plt.xlabel("Target z [mm]")
+            plt.ylabel("Residuals mean [mm]")
 
 plt.legend()
 
