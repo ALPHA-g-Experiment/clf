@@ -55,8 +55,12 @@ optimizer = build_optimizer(model.parameters(), settings.training.optimizer)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 model.to(device)
-train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
-validation_dataloader = DataLoader(validation_dataset, batch_size=batch_size)
+train_dataloader = DataLoader(
+    train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True
+)
+validation_dataloader = DataLoader(
+    validation_dataset, batch_size=batch_size, pin_memory=True
+)
 
 training_log = args.output_dir / "training_log.csv"
 with open(training_log, mode="w", newline="") as f:
