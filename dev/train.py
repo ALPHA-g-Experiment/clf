@@ -16,6 +16,10 @@ from training.loop import train_one_epoch, test_one_epoch
 from training.loss import CustomLoss
 from torch.utils.data import DataLoader
 
+# Marginally faster, and no noticeable difference in accuracy. Silences PyTorch
+# suggestions to use "high" precision for matmul in a100.
+torch.set_float32_matmul_precision("high")
+
 
 parser = argparse.ArgumentParser(description="Training pipeline")
 parser.add_argument("train_data", help="path to Parquet training data")
