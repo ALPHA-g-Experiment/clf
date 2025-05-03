@@ -71,16 +71,18 @@ validation_dataloader = DataLoader(validation_dataset, batch_size=2048, pin_memo
 training_log = args.output_dir / "training_log.csv"
 with open(training_log, mode="w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(["epoch", "training_loss", "validation_loss"])
+    writer.writerow(["epoch", "training_loss", "validation_loss", "mean", "std"])
 
 best_loss = float("inf")
 for i in range(max_epochs):
     train_loss = train_one_epoch(train_dataloader, model, loss_fn, optimizer, device)
-    validation_loss = test_one_epoch(validation_dataloader, model, loss_fn, device)
+    validation_loss, mean, std = test_one_epoch(
+        validation_dataloader, model, loss_fn, device
+    )
 
     with open(training_log, mode="a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([i, train_loss, validation_loss])
+        writer.writerow([i, train_loss, validation_loss, mean, std])
 
     if validation_loss < best_loss:
         best_loss = validation_loss

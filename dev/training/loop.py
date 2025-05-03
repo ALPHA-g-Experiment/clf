@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 
 
@@ -47,11 +48,15 @@ def test_one_epoch(dataloader, model, loss_fn, device):
         device (torch.device): Device to perform computations on.
 
     Returns:
-        float: Average loss over the validation set.
+        tuple: A tuple containing:
+            - float: Average loss over the validation set.
+            - float: Mean of (5% trimmed) residuals.
+            - float: Standard deviation of (5% trimmed) residuals.
     """
     model.eval()
 
     total_loss = 0.0
+    residuals = []
     with torch.no_grad():
         for x, y in dataloader:
             x = x.to(device)
@@ -59,5 +64,11 @@ def test_one_epoch(dataloader, model, loss_fn, device):
 
             pred = model(x)
             total_loss += loss_fn(pred, y).item()
+            residuals = np.append(residuals, (pred - y).cpu().numpy())
+    total_loss /= len(dataloader)
 
-    return total_loss / len(dataloader)
+    residuals = np.sort(residuals)
+    n = len(residuals)
+    trimmed_residuals = residuals[int(0.05 * n) : int(0.95 * n)]
+
+    return total_loss, trimmed_residuals.mean(), trimmed_residuals.std(ddof=1)
