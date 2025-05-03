@@ -16,6 +16,10 @@ from training.loop import train_one_epoch, test_one_epoch
 from training.loss import CustomLoss
 from torch.utils.data import DataLoader
 
+# Marginally faster, and no noticeable difference in accuracy. Silences PyTorch
+# suggestions to use "high" precision for matmul in a100.
+torch.set_float32_matmul_precision("high")
+
 
 parser = argparse.ArgumentParser(description="Training pipeline")
 parser.add_argument("train_data", help="path to Parquet training data")
@@ -46,7 +50,6 @@ if args.dry_run:
 batch_size = settings.training.batch_size
 max_epochs = settings.training.max_epochs
 train_dataset = PointCloudDataset(args.train_data, settings.data)
-validation_dataset = PointCloudDataset(args.val_data, settings.data)
 model = Regressor(settings.model)
 loss_fn = CustomLoss(settings.training.loss)
 optimizer = build_optimizer(model.parameters(), settings.training.optimizer)
@@ -58,9 +61,12 @@ model.to(device)
 train_dataloader = DataLoader(
     train_dataset, batch_size=batch_size, shuffle=True, pin_memory=True
 )
-validation_dataloader = DataLoader(
-    validation_dataset, batch_size=batch_size, pin_memory=True
-)
+# Validation `cloud_size` and `batch_size` hardcoded to keep settings clean to
+# tunable hyperparameters.
+# Low effort way of using "all" (>99%) of spacepoints for validation
+validation_dataset = PointCloudDataset(args.val_data, {"cloud_size": 2048})
+# Biggest-ish batch size that fits in a100 memory
+validation_dataloader = DataLoader(validation_dataset, batch_size=2048, pin_memory=True)
 
 training_log = args.output_dir / "training_log.csv"
 with open(training_log, mode="w", newline="") as f:
