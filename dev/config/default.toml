@@ -19,7 +19,6 @@ batch_size = 512
 max_epochs = 500
 
 [training.loss]
-delta = 1.0
 
 [training.optimizer]
 lr = 0.001
