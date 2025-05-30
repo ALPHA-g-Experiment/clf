@@ -15,7 +15,7 @@ conv_feature_extractor = [64, 128, 1024]
 fc_regressor = [512, 256]
 
 [training]
-batch_size = 512
+batch_size = 256
 max_epochs = 500
 
 [training.loss]
