@@ -52,11 +52,13 @@ def test_one_epoch(dataloader, model, loss_fn, device):
             - float: Average loss over the validation set.
             - float: Mean of (5% trimmed) residuals.
             - float: Standard deviation of (5% trimmed) residuals.
+            - float: Sum of sliced absolute mean residuals.
     """
     model.eval()
 
     total_loss = 0.0
     residuals = []
+    targets = []
     with torch.no_grad():
         for x, y in dataloader:
             x = x.to(device)
@@ -65,10 +67,32 @@ def test_one_epoch(dataloader, model, loss_fn, device):
             pred = model(x)
             total_loss += loss_fn(pred, y).item()
             residuals = np.append(residuals, (pred - y).cpu().numpy())
+            targets = np.append(targets, y.cpu().numpy())
     total_loss /= len(dataloader)
 
     residuals = np.sort(residuals)
     n = len(residuals)
     trimmed_residuals = residuals[int(0.05 * n) : int(0.95 * n)]
 
-    return total_loss, trimmed_residuals.mean(), trimmed_residuals.std(ddof=1)
+    # Taking an up/down measurement in the bottom trap as a baseline:
+    # Each of the up/down/lOc regions is about 200 mm.
+    # The down region below mirror A extends down to -875 mm i.e. 275 mm from
+    # the edge of the detector.
+    # Then it makes sense to use 23 slices of ~100 mm each, ignoring the top and
+    # bottom 2 slices.
+    num_slices = 23
+    slice_edges = np.linspace(-1152, 1152, num_slices, endpoint=False)[1:]
+    indices = np.digitize(targets, slice_edges)
+
+    sliced_abs_mean = 0.0
+    for i in range(2, num_slices - 2):
+        mask = indices == i
+        if np.any(mask):
+            sliced_abs_mean += abs(residuals[mask].mean())
+
+    return (
+        total_loss,
+        trimmed_residuals.mean(),
+        trimmed_residuals.std(ddof=1),
+        sliced_abs_mean,
+    )
