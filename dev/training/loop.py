@@ -36,6 +36,13 @@ def train_one_epoch(dataloader, model, loss_fn, optimizer, device):
     return total_loss / len(dataloader)
 
 
+def trim_sort(arr, trim_ratio):
+    n = len(arr)
+    sorted_arr = np.sort(arr)
+
+    return sorted_arr[int(trim_ratio * n) : int((1 - trim_ratio) * n)]
+
+
 @torch.compile
 def test_one_epoch(dataloader, model, loss_fn, device):
     """
@@ -70,9 +77,7 @@ def test_one_epoch(dataloader, model, loss_fn, device):
             targets = np.append(targets, y.cpu().numpy())
     total_loss /= len(dataloader)
 
-    residuals = np.sort(residuals)
-    n = len(residuals)
-    trimmed_residuals = residuals[int(0.05 * n) : int(0.95 * n)]
+    trimmed_residuals = trim_sort(residuals, 0.05)
 
     # Taking an up/down measurement in the bottom trap as a baseline:
     # Each of the up/down/lOc regions is about 200 mm.
@@ -88,7 +93,8 @@ def test_one_epoch(dataloader, model, loss_fn, device):
     for i in range(2, num_slices - 2):
         mask = indices == i
         if np.any(mask):
-            sliced_abs_mean += abs(residuals[mask].mean())
+            trimmed = trim_sort(residuals[mask], 0.05)
+            sliced_abs_mean += abs(trimmed.mean())
 
     return (
         total_loss,
