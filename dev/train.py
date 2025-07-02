@@ -48,6 +48,7 @@ if args.dry_run:
     exit(0)
 
 batch_size = settings.training.batch_size
+min_epochs = settings.training.min_epochs
 max_epochs = settings.training.max_epochs
 train_dataset = PointCloudDataset(args.train_data, settings.data)
 model = Regressor(settings.model)
@@ -71,21 +72,23 @@ validation_dataloader = DataLoader(validation_dataset, batch_size=2048, pin_memo
 training_log = args.output_dir / "training_log.csv"
 with open(training_log, mode="w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(["epoch", "training_loss", "validation_loss", "mean", "std"])
+    writer.writerow(
+        ["epoch", "training_loss", "validation_loss", "mean", "std", "sliced_mean"]
+    )
 
-best_loss = float("inf")
+best_sliced_mean = float("inf")
 for i in range(max_epochs):
     train_loss = train_one_epoch(train_dataloader, model, loss_fn, optimizer, device)
-    validation_loss, mean, std = test_one_epoch(
+    validation_loss, mean, std, sliced_mean = test_one_epoch(
         validation_dataloader, model, loss_fn, device
     )
 
     with open(training_log, mode="a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([i, train_loss, validation_loss, mean, std])
+        writer.writerow([i, train_loss, validation_loss, mean, std, sliced_mean])
 
-    if validation_loss < best_loss:
-        best_loss = validation_loss
+    if i >= min_epochs and sliced_mean < best_sliced_mean:
+        best_sliced_mean = sliced_mean
 
         model_scripted = torch.jit.script(model)
         model_scripted.save(args.output_dir / "model.pt")
