@@ -26,7 +26,7 @@ args = parser.parse_args()
 lf = pl.scan_parquet(args.dataset).filter(pl.col("point_cloud").list.len() > 0)
 z = lf.select(pl.col("target").arr.get(2)).collect()
 breaks = pl.linear_space(
-    z.min(), z.max(), num_samples=args.bins - 1, closed="none", eager=True
+    z.min().item(), z.max().item(), num_samples=args.bins - 1, closed="none", eager=True
 )
 lf = lf.with_columns(bin=pl.col("target").arr.get(2).cut(breaks))
 
