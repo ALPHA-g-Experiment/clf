@@ -21,8 +21,16 @@ parser.add_argument("--output-dir", default=".", help="output directory")
 
 args = parser.parse_args()
 
-signal_df = pl.scan_parquet(args.pbar_dataset).with_columns(target=1.0).collect()
-background_df = pl.scan_parquet(args.cosmic_dataset).with_columns(target=0.0).collect()
+signal_df = (
+    pl.scan_parquet(args.pbar_dataset)
+    .with_columns(target=pl.lit(1.0).cast(pl.Float32))
+    .collect()
+)
+background_df = (
+    pl.scan_parquet(args.cosmic_dataset)
+    .with_columns(target=pl.lit(0.0).cast(pl.Float32))
+    .collect()
+)
 
 n_rows = min(signal_df.height, background_df.height)
 signal_df = signal_df.sample(n_rows, shuffle=True, seed=0)
