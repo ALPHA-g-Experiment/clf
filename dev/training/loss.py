@@ -22,5 +22,5 @@ class CustomLoss(nn.Module):
         super().__init__()
 
     def forward(self, pred, target):
-        loss = F.l1_loss(pred, target)
+        loss = F.binary_cross_entropy_with_logits(pred, target)
         return loss
