@@ -8,7 +8,7 @@ from data.dataset import PointCloudDataset
 from datetime import datetime
 from dynaconf import loaders
 from dynaconf.utils.boxing import DynaBox
-from model.regressor import Regressor
+from model.classifier import Classifier
 from pathlib import Path
 from config.settings import settings
 from training.optimizer import build_optimizer
@@ -51,7 +51,7 @@ batch_size = settings.training.batch_size
 min_epochs = settings.training.min_epochs
 max_epochs = settings.training.max_epochs
 train_dataset = PointCloudDataset(args.train_data, settings.data)
-model = Regressor(settings.model)
+model = Classifier(settings.model)
 loss_fn = CustomLoss(settings.training.loss)
 optimizer = build_optimizer(model.parameters(), settings.training.optimizer)
 
@@ -72,23 +72,19 @@ validation_dataloader = DataLoader(validation_dataset, batch_size=2048, pin_memo
 training_log = args.output_dir / "training_log.csv"
 with open(training_log, mode="w", newline="") as f:
     writer = csv.writer(f)
-    writer.writerow(
-        ["epoch", "training_loss", "validation_loss", "mean", "std", "sliced_mean"]
-    )
+    writer.writerow(["epoch", "training_loss", "validation_loss"])
 
-best_sliced_mean = float("inf")
+best_loss = float("inf")
 for i in range(max_epochs):
     train_loss = train_one_epoch(train_dataloader, model, loss_fn, optimizer, device)
-    validation_loss, mean, std, sliced_mean = test_one_epoch(
-        validation_dataloader, model, loss_fn, device
-    )
+    validation_loss = test_one_epoch(validation_dataloader, model, loss_fn, device)
 
     with open(training_log, mode="a", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow([i, train_loss, validation_loss, mean, std, sliced_mean])
+        writer.writerow([i, train_loss, validation_loss])
 
-    if i >= min_epochs and sliced_mean < best_sliced_mean:
-        best_sliced_mean = sliced_mean
+    if i >= min_epochs and validation_loss < best_loss:
+        best_loss = validation_loss
 
         model_scripted = torch.jit.script(model)
         model_scripted.save(args.output_dir / "model.pt")
