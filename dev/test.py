@@ -23,7 +23,7 @@ targets = []
 predictions = []
 with torch.no_grad():
     for entry in pl.read_parquet(args.dataset).iter_rows(named=True):
-        target = torch.tensor(entry["target"][2], device=device).unsqueeze(0)
+        target = torch.tensor(entry["target"], device=device).unsqueeze(0)
         point_cloud = (
             torch.tensor(entry["point_cloud"], device=device)
             .transpose(0, 1)
@@ -31,6 +31,7 @@ with torch.no_grad():
         )
 
         prediction = model(point_cloud)
+        prediction = torch.sigmoid(prediction)
 
         targets = np.append(targets, target.cpu().numpy())
         predictions = np.append(predictions, prediction.cpu().numpy())
