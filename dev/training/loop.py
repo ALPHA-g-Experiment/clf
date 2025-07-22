@@ -52,6 +52,12 @@ def test_one_epoch(dataloader, model, loss_fn, device):
     model.eval()
 
     total_loss = 0.0
+    metrics = {
+        "true_positives": 0,
+        "true_negatives": 0,
+        "false_positives": 0,
+        "false_negatives": 0,
+    }
     with torch.no_grad():
         for x, y in dataloader:
             x = x.to(device)
@@ -60,4 +66,20 @@ def test_one_epoch(dataloader, model, loss_fn, device):
             pred = model(x)
             total_loss += loss_fn(pred, y).item()
 
-    return total_loss / len(dataloader)
+            signal_mask = y == 1.0
+            background_mask = ~signal_mask
+            # Raw logits because we are using BCE with logits
+            positive_mask = pred >= 0.0
+            negative_mask = ~positive_mask
+
+            metrics["true_positives"] += (signal_mask & positive_mask).sum().item()
+            metrics["true_negatives"] += (background_mask & negative_mask).sum().item()
+            metrics["false_positives"] += (background_mask & positive_mask).sum().item()
+            metrics["false_negatives"] += (signal_mask & negative_mask).sum().item()
+
+    total_loss /= len(dataloader)
+    accuracy = (metrics["true_positives"] + metrics["true_negatives"]) / sum(
+        metrics.values()
+    )
+
+    return total_loss, accuracy
