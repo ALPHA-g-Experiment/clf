@@ -52,6 +52,38 @@ def roc(data):
     plt.plot(fpr, tpr, label=f"{data} (AUC = {auc:.4f})")
 
 
+def confusion_matrix(data, threshold):
+    df = pl.read_csv(data)
+
+    signal_df = df.filter(pl.col("target") == 1.0)
+    background_df = df.filter(pl.col("target") == 0.0)
+
+    true_positive = signal_df.filter(pl.col("prediction") >= threshold).height
+    false_negative = signal_df.filter(pl.col("prediction") < threshold).height
+    false_positive = background_df.filter(pl.col("prediction") >= threshold).height
+    true_negative = background_df.filter(pl.col("prediction") < threshold).height
+
+    matrix = np.array(
+        [[true_positive, false_negative], [false_positive, true_negative]]
+    )
+    plt.imshow(matrix, cmap="Blues", interpolation="nearest")
+    plt.colorbar()
+    plt.title(f"Confusion Matrix (Threshold = {threshold})")
+    plt.xticks([0, 1], ["Predicted Signal", "Predicted Background"])
+    plt.yticks([0, 1], ["Actual Signal", "Actual Background"])
+    for i in range(2):
+        for j in range(2):
+            plt.text(
+                j,
+                i,
+                f"{matrix[i, j]}",
+                ha="center",
+                va="center",
+                color="white",
+                bbox=dict(facecolor="black", alpha=0.5, edgecolor="none"),
+            )
+
+
 parser = argparse.ArgumentParser(description="Data Visualization")
 subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -81,6 +113,15 @@ parser_roc = subparsers.add_parser(
     parents=[parser_all],
 )
 
+parser_confusion_matrix = subparsers.add_parser(
+    "confusion-matrix",
+    help="confusion matrix (expects CSV test results)",
+    parents=[parser_all],
+)
+parser_confusion_matrix.add_argument(
+    "--threshold", type=float, default=0.5, help="classification threshold"
+)
+
 args = parser.parse_args()
 
 alpha = 1.0 if len(args.data) == 1 else 0.5
@@ -94,8 +135,11 @@ for dataset in args.data:
             roc(dataset)
             plt.xlabel("1 - Specificity")
             plt.ylabel("Sensitivity")
+        case "confusion-matrix":
+            confusion_matrix(dataset, args.threshold)
 
-plt.legend()
+if args.subcommand != "confusion-matrix":
+    plt.legend()
 
 if args.output:
     plt.savefig(args.output)
