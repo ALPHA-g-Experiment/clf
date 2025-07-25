@@ -33,9 +33,11 @@ def roc(data):
     n_signal = df.filter(pl.col("target") == 1.0).height
     n_background = df.filter(pl.col("target") == 0.0).height
 
-    thresholds = np.linspace(0, 1, 100)
-    true_positives = np.zeros_like(thresholds)
-    false_positives = np.zeros_like(thresholds)
+    thresholds = np.linspace(0, 1, 1000)
+    # One extra point to force (0, 0). The score saturates, so even with a
+    # threshold of 1.0, some predictions will satisfy it.
+    true_positives = np.zeros(len(thresholds) + 1)
+    false_positives = np.zeros_like(true_positives)
 
     for i, threshold in enumerate(thresholds):
         passed = df.filter(pl.col("prediction") >= threshold)
@@ -43,7 +45,11 @@ def roc(data):
         true_positives[i] = passed.filter(pl.col("target") == 1.0).height
         false_positives[i] = passed.filter(pl.col("target") == 0.0).height
 
-    plt.plot(false_positives / n_background, true_positives / n_signal, label=data)
+    fpr = false_positives / n_background
+    tpr = true_positives / n_signal
+    auc = abs(np.trapz(tpr, fpr))
+
+    plt.plot(fpr, tpr, label=f"{data} (AUC = {auc:.4f})")
 
 
 parser = argparse.ArgumentParser(description="Data Visualization")
