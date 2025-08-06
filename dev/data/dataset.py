@@ -9,7 +9,7 @@ class PointCloudDataset(Dataset):
     Args:
         parquet_file (str): Path to the Parquet file containing samples.
             Each row must include:
-                - `target`: Label (signal=1.0, background=0.0) (f32)
+                - `label`: Label (signal=1.0, background=0.0) (f32)
                 - `point_cloud`: list of 3D points (list[array[f32, 3]])
         config (dict): Dataset configuration with keys:
             - `cloud_size` (int): Number of points to sample from the point cloud.
@@ -24,7 +24,8 @@ class PointCloudDataset(Dataset):
 
         self.inner = (
             pl.scan_parquet(parquet_file)
-            .with_columns(
+            .select(
+                "label",
                 pl.col("point_cloud")
                 .list.eval(
                     pl.element().sort_by(
@@ -39,7 +40,7 @@ class PointCloudDataset(Dataset):
                 .map_batches(lambda x: x.to_numpy().transpose(0, 2, 1)),
             )
             .collect()
-            .to_torch("dataset", label="target")
+            .to_torch("dataset", label="label")
         )
 
     def __len__(self):
