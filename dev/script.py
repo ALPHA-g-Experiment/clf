@@ -16,31 +16,27 @@ args = parser.parse_args()
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model = torch.jit.load(args.model, map_location=device)
-model.eval()
-
 labels = []
 predictions = []
-vertices_z = []
 with torch.no_grad():
     for entry in pl.read_parquet(args.dataset).iter_rows(named=True):
         label = entry["label"]
-        vertex_z = entry["target"][2]
+        target = entry["target"][2]
         point_cloud = (
             torch.tensor(entry["point_cloud"], device=device)
             .transpose(0, 1)
             .unsqueeze(0)
         )
-
-        prediction = model(point_cloud)
-        prediction = torch.sigmoid(prediction)
+        print(label)
+        print(target)
 
         labels = np.append(labels, label)
-        vertices_z = np.append(vertices_z, vertex_z)
-        predictions = np.append(predictions, prediction.cpu().numpy())
+        break
 
+print(labels)
+exit(0)
 
-df = pl.DataFrame({"label": labels, "prediction": predictions, "vertex_z": vertices_z})
+df = pl.DataFrame({"label": labels, "prediction": predictions})
 if args.output:
     df.write_csv(args.output)
     print(f"Created `{args.output}`")
