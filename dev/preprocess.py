@@ -23,12 +23,12 @@ args = parser.parse_args()
 
 signal_df = (
     pl.scan_parquet(args.pbar_dataset)
-    .with_columns(target=pl.lit(1.0).cast(pl.Float32))
+    .with_columns(label=pl.lit(1.0).cast(pl.Float32))
     .collect()
 )
 background_df = (
     pl.scan_parquet(args.cosmic_dataset)
-    .with_columns(target=pl.lit(0.0).cast(pl.Float32))
+    .with_columns(label=pl.lit(0.0).cast(pl.Float32))
     .collect()
 )
 
