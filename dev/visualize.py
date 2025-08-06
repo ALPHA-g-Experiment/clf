@@ -84,6 +84,16 @@ def confusion_matrix(data, threshold):
             )
 
 
+def z_acceptance(data, bins, min, max, normalize, alpha, threshold):
+    z = pl.read_csv(data).filter(
+        (pl.col("label") == 1.0) & (pl.col("prediction") >= threshold)
+    )["vertex_z"]
+    min = z.min() if min is None else min
+    max = z.max() if max is None else max
+
+    plt.hist(z, bins=bins, range=(min, max), density=normalize, alpha=alpha, label=data)
+
+
 parser = argparse.ArgumentParser(description="Data Visualization")
 subparsers = parser.add_subparsers(dest="subcommand", required=True)
 
@@ -122,6 +132,15 @@ parser_confusion_matrix.add_argument(
     "--threshold", type=float, default=0.5, help="classification threshold"
 )
 
+parser_z_acceptance = subparsers.add_parser(
+    "z-acceptance",
+    help="Z-acceptance plot (expects CSV test results)",
+    parents=[parser_all, parser_hist],
+)
+parser_z_acceptance.add_argument(
+    "--threshold", type=float, default=0.5, help="classification threshold"
+)
+
 args = parser.parse_args()
 
 alpha = 1.0 if len(args.data) == 1 else 0.5
@@ -137,6 +156,18 @@ for dataset in args.data:
             plt.ylabel("Sensitivity")
         case "confusion-matrix":
             confusion_matrix(dataset, args.threshold)
+        case "z-acceptance":
+            z_acceptance(
+                dataset,
+                args.bins,
+                args.min,
+                args.max,
+                args.normalize,
+                alpha,
+                args.threshold,
+            )
+            plt.xlabel("Annihilation z [mm]")
+            plt.ylabel("Count")
 
 if args.subcommand != "confusion-matrix":
     plt.legend()
