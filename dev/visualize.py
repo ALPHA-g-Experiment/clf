@@ -12,8 +12,8 @@ def scores(data, bins, min, max, normalize, alpha):
     max = df["prediction"].max() if max is None else max
     bins = np.linspace(min, max, bins + 1)
 
-    signal = df.filter(pl.col("target") == 1.0)["prediction"]
-    background = df.filter(pl.col("target") == 0.0)["prediction"]
+    signal = df.filter(pl.col("label") == 1.0)["prediction"]
+    background = df.filter(pl.col("label") == 0.0)["prediction"]
 
     plt.hist(
         background,
@@ -30,8 +30,8 @@ def scores(data, bins, min, max, normalize, alpha):
 def roc(data):
     df = pl.read_csv(data)
 
-    n_signal = df.filter(pl.col("target") == 1.0).height
-    n_background = df.filter(pl.col("target") == 0.0).height
+    n_signal = df.filter(pl.col("label") == 1.0).height
+    n_background = df.filter(pl.col("label") == 0.0).height
 
     thresholds = np.linspace(0, 1, 1000)
     # One extra point to force (0, 0). The score saturates, so even with a
@@ -42,8 +42,8 @@ def roc(data):
     for i, threshold in enumerate(thresholds):
         passed = df.filter(pl.col("prediction") >= threshold)
 
-        true_positives[i] = passed.filter(pl.col("target") == 1.0).height
-        false_positives[i] = passed.filter(pl.col("target") == 0.0).height
+        true_positives[i] = passed.filter(pl.col("label") == 1.0).height
+        false_positives[i] = passed.filter(pl.col("label") == 0.0).height
 
     fpr = false_positives / n_background
     tpr = true_positives / n_signal
@@ -55,8 +55,8 @@ def roc(data):
 def confusion_matrix(data, threshold):
     df = pl.read_csv(data)
 
-    signal_df = df.filter(pl.col("target") == 1.0)
-    background_df = df.filter(pl.col("target") == 0.0)
+    signal_df = df.filter(pl.col("label") == 1.0)
+    background_df = df.filter(pl.col("label") == 0.0)
 
     true_positive = signal_df.filter(pl.col("prediction") >= threshold).height
     false_negative = signal_df.filter(pl.col("prediction") < threshold).height
