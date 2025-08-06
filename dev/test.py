@@ -19,11 +19,11 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = torch.jit.load(args.model, map_location=device)
 model.eval()
 
-targets = []
+labels = []
 predictions = []
 with torch.no_grad():
     for entry in pl.read_parquet(args.dataset).iter_rows(named=True):
-        target = torch.tensor(entry["target"], device=device).unsqueeze(0)
+        label = entry["label"]
         point_cloud = (
             torch.tensor(entry["point_cloud"], device=device)
             .transpose(0, 1)
@@ -33,11 +33,11 @@ with torch.no_grad():
         prediction = model(point_cloud)
         prediction = torch.sigmoid(prediction)
 
-        targets = np.append(targets, target.cpu().numpy())
+        labels = np.append(labels, label)
         predictions = np.append(predictions, prediction.cpu().numpy())
 
 
-df = pl.DataFrame({"target": targets, "prediction": predictions})
+df = pl.DataFrame({"label": labels, "prediction": predictions})
 if args.output:
     df.write_csv(args.output)
     print(f"Created `{args.output}`")
