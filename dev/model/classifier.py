@@ -62,6 +62,7 @@ class Classifier(nn.Module):
 
     Args:
         config (dict): Inner layer configuration with keys:
+            - `input_transform_net`: nested config for input alignment T-Net.
             - `conv_feature_extractor_pre`: list of Conv1d layer dimensions for
               pre-alignment feature extraction.
             - `feature_transform_net`: nested config for feature alignment T-Net.
