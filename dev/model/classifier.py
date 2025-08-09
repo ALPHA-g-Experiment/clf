@@ -83,6 +83,8 @@ class Classifier(nn.Module):
         super().__init__()
         in_dim = 3
 
+        self.input_transform_net = _TNet(in_dim, config["input_transform_net"], 1)
+
         self.conv_feature_extractor_pre = nn.Sequential()
         for dim in config["conv_feature_extractor_pre"]:
             self.conv_feature_extractor_pre.append(nn.Conv1d(in_dim, dim, 1))
@@ -116,6 +118,9 @@ class Classifier(nn.Module):
         self.fc_regressor.append(nn.Linear(in_dim, 1))
 
     def forward(self, x):
+        input_trans = self.input_transform_net(x)
+        x = torch.stack((x[:, 0, :], x[:, 1, :], x[:, 2, :] - input_trans), dim=1)
+
         x = self.conv_feature_extractor_pre(x)
 
         feat_trans = self.feature_transform_net(x).view(
