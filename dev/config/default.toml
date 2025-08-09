@@ -17,7 +17,7 @@ fc_regressor = [512, 256]
 [training]
 batch_size = 256
 min_epochs = 0
-max_epochs = 500
+max_epochs = 75
 
 [training.loss]
 
